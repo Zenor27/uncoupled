@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from logging import Logger
 from typing import Any
 
-from dipy.exception import UnregisteredInterfaceError
+from dipy.exception import ResolverError, UnregisteredInterfaceError
 from dipy.providers.provider import Provider, Registered, Resolver, Marker
 
 
@@ -16,14 +16,16 @@ class Scoped[I]:
 
 
 class ScopedProvider(Provider):
-    def __init__(self, *, get_scope: Callable[[], Hashable], logger: Logger) -> None:
+    def __init__(
+        self, *, get_scope: Callable[[], Hashable], logger: Logger | None = None
+    ) -> None:
         self._interface_to_concretes: dict[type, list[Registered[Any]]] = defaultdict(
             list
         )
         self._registered_to_scoped: dict[Registered[Any], Scoped[Any]] = {}
 
         self._get_scope = get_scope
-        self._logger = logger
+        self._logger = logger or Logger("ScopedProvider")
 
     def get[T](self, interface: type[T], resolver: Resolver[T] | None = None) -> T:
         if interface not in self._interface_to_concretes:
@@ -32,17 +34,20 @@ class ScopedProvider(Provider):
         concretes = self._interface_to_concretes[interface]
         if len(concretes) == 0:
             raise UnregisteredInterfaceError(interface)
-        if len(concretes) == 1:
-            return self._get_scoped_instance(concretes[0])
 
         if resolver is None:
-            self._logger.warning(
-                f"Multiple concretes registered for interface {interface}. "
-                "Using the first registered one."
-            )
+            if len(concretes) > 1:
+                self._logger.warning(
+                    f"Multiple concretes registered for interface {interface}. "
+                    "Using the first registered one."
+                )
             return self._get_scoped_instance(concretes[0])
 
-        register = resolver(concretes)
+        try:
+            register = resolver(concretes)
+        except Exception:
+            raise ResolverError(interface)
+
         return self._get_scoped_instance(register)
 
     def _get_scoped_instance[T](self, registered: Registered[T]) -> T:
@@ -55,6 +60,6 @@ class ScopedProvider(Provider):
     def register[T](
         self, interface: type[T], concrete: type[T], marker: Marker | None = None
     ) -> None:
-        registered = Registered(concrete=concrete, marker=marker)
+        registered = Registered(concrete=concrete, marker=marker, lifetime="scoped")
         self._interface_to_concretes[interface].append(registered)
         self._registered_to_scoped[registered] = Scoped(type=concrete)

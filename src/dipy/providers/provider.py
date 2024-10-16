@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from dipy.lifetime import Lifetime
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -9,6 +10,7 @@ Marker = str
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Registered[T]:
     concrete: type[T]
+    lifetime: Lifetime
     marker: Marker | None = None
 
 

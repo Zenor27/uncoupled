@@ -1,10 +1,12 @@
 from collections.abc import Callable, Hashable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, Self, cast
+from typing import TYPE_CHECKING, Any, Self, cast
+from dipy.lifetime import Lifetime
 
 from dipy.exception import (
     ContainerAlreadyCreatedError,
     ContainerNotCreatedError,
+    ResolverError,
     UnregisteredInterfaceError,
 )
 from dipy.providers.provider import Provider, Marker, Resolver
@@ -15,9 +17,6 @@ import logging
 
 if TYPE_CHECKING:
     from logging import _Level
-
-
-_Lifetime = Literal["transient", "singleton", "scoped"]
 
 
 @dataclass
@@ -46,12 +45,16 @@ class Container:
         self._logger = logging.getLogger("dipy")
         self._logger.setLevel(log_level)
 
-        self._lifetime_to_provider: dict[_Lifetime, Provider] = {
+        self._lifetime_to_provider: dict[Lifetime, Provider] = {
             "transient": TransientProvider(logger=self._logger),
             "singleton": SingletonProvider(logger=self._logger),
             "scoped": ScopedProvider(get_scope=get_scope, logger=self._logger),
         }
         self._must_warn_about_default_get_scope = get_scope is _default_get_scope
+
+    @classmethod
+    def _delete_instance(cls) -> None:
+        Container._instance = None
 
     @classmethod
     def create(
@@ -98,7 +101,7 @@ class Container:
         self._lifetime_to_provider["scoped"].register(interface, concrete, marker)
         return self
 
-    def _get_concrete_instance[I](
+    def get_concrete_instance[I](
         self, interface: type[I], resolver: Resolver[I] | None = None
     ) -> I:
         for provider in self._lifetime_to_provider.values():
@@ -109,6 +112,8 @@ class Container:
                 )
                 return concrete
             except UnregisteredInterfaceError:
+                pass
+            except ResolverError:
                 pass
 
         raise UnregisteredInterfaceError(interface)
@@ -121,7 +126,7 @@ def make_proxy_method(name: str):
 
         interface = object.__getattribute__(self, "_interface")
         resolver = object.__getattribute__(self, "_resolver")
-        concrete = Container._get_instance()._get_concrete_instance(interface, resolver)
+        concrete = Container._get_instance().get_concrete_instance(interface, resolver)
 
         object.__setattr__(self, "_concrete", concrete)
         return getattr(concrete, name)(*args, **kwargs)
