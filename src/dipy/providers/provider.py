@@ -1,7 +1,23 @@
+from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Protocol
 
 
-class Provider(Protocol):
-    def get[T](self, interface: type[T]) -> T: ...
+Marker = str
 
-    def register[T](self, interface: type[T], concrete: type[T]) -> None: ...
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class Registered[T]:
+    concrete: type[T]
+    marker: Marker | None = None
+
+
+type Resolver[T] = Callable[[list[Registered[T]]], Registered[T]]
+
+
+class Provider(Protocol):
+    def get[T](self, interface: type[T], resolver: Resolver[T] | None = None) -> T: ...
+
+    def register[T](
+        self, interface: type[T], concrete: type[T], marker: Marker | None = None
+    ) -> None: ...

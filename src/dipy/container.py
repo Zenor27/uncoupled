@@ -7,7 +7,7 @@ from dipy.exception import (
     ContainerNotCreatedError,
     UnregisteredInterfaceError,
 )
-from dipy.providers.provider import Provider
+from dipy.providers.provider import Provider, Marker, Resolver
 from dipy.providers.scoped import ScopedProvider
 from dipy.providers.singleton import SingletonProvider
 from dipy.providers.transient import TransientProvider
@@ -43,14 +43,15 @@ class Container:
         return Container._instance
 
     def __init__(self, get_scope: Callable[[], Hashable], log_level: "_Level") -> None:
-        self._lifetime_to_provider: dict[_Lifetime, Provider] = {
-            "transient": TransientProvider(),
-            "singleton": SingletonProvider(),
-            "scoped": ScopedProvider(get_scope=get_scope),
-        }
-        self._must_warn_about_default_get_scope = get_scope is _default_get_scope
         self._logger = logging.getLogger("dipy")
         self._logger.setLevel(log_level)
+
+        self._lifetime_to_provider: dict[_Lifetime, Provider] = {
+            "transient": TransientProvider(logger=self._logger),
+            "singleton": SingletonProvider(logger=self._logger),
+            "scoped": ScopedProvider(get_scope=get_scope, logger=self._logger),
+        }
+        self._must_warn_about_default_get_scope = get_scope is _default_get_scope
 
     @classmethod
     def create(
@@ -65,19 +66,25 @@ class Container:
         cls._instance = c
         return c
 
-    def add_transient[I, C](self, interface: type[I], concrete: type[C]) -> Self:
+    def add_transient[I, C](
+        self, interface: type[I], concrete: type[C], marker: Marker | None = None
+    ) -> Self:
         self._logger.debug(f"Registering transient {interface} -> {concrete}")
 
-        self._lifetime_to_provider["transient"].register(interface, concrete)
+        self._lifetime_to_provider["transient"].register(interface, concrete, marker)
         return self
 
-    def add_singleton[I, C](self, interface: type[I], concrete: type[C]) -> Self:
+    def add_singleton[I, C](
+        self, interface: type[I], concrete: type[C], marker: Marker | None = None
+    ) -> Self:
         self._logger.debug(f"Registering singleton {interface} -> {concrete}")
 
-        self._lifetime_to_provider["singleton"].register(interface, concrete)
+        self._lifetime_to_provider["singleton"].register(interface, concrete, marker)
         return self
 
-    def add_scoped[I, C](self, interface: type[I], concrete: type[C]) -> Self:
+    def add_scoped[I, C](
+        self, interface: type[I], concrete: type[C], marker: Marker | None = None
+    ) -> Self:
         self._logger.debug(f"Registering scoped {interface} -> {concrete}")
 
         if self._must_warn_about_default_get_scope:
@@ -88,13 +95,15 @@ class Container:
             )
             self._must_warn_about_default_get_scope = False
 
-        self._lifetime_to_provider["scoped"].register(interface, concrete)
+        self._lifetime_to_provider["scoped"].register(interface, concrete, marker)
         return self
 
-    def _get_concrete_instance[I](self, interface: type[I]) -> I:
+    def _get_concrete_instance[I](
+        self, interface: type[I], resolver: Resolver[I] | None = None
+    ) -> I:
         for provider in self._lifetime_to_provider.values():
             try:
-                concrete = provider.get(interface)
+                concrete = provider.get(interface, resolver)
                 self._logger.debug(
                     f"Resolved {interface} to {concrete} with {provider.__class__.__name__}"
                 )
@@ -107,22 +116,30 @@ class Container:
 
 def make_proxy_method(name: str):
     def proxy_method(self, *args: Any, **kwargs: Any) -> Any:
+        if concrete := object.__getattribute__(self, "_concrete"):
+            return getattr(concrete, name)(*args, **kwargs)
+
         interface = object.__getattribute__(self, "_interface")
-        container = Container._get_instance()
-        concrete = container._get_concrete_instance(interface)
+        resolver = object.__getattribute__(self, "_resolver")
+        concrete = Container._get_instance()._get_concrete_instance(interface, resolver)
+
+        object.__setattr__(self, "_concrete", concrete)
         return getattr(concrete, name)(*args, **kwargs)
 
     return proxy_method
 
 
 class LazyProxy[I]:
-    def __init__(self, interface: type[I]) -> None:
+    def __init__(self, interface: type[I], resolver: Resolver | None = None) -> None:
         self._interface = interface
+        self._resolver = resolver
+
+        self._concrete: I | None = None
 
     __call__ = make_proxy_method("__call__")
     __getattribute__ = make_proxy_method("__getattribute__")
     __repr__ = make_proxy_method("__repr__")
 
 
-def Depends[I](interface: type[I]) -> I:
-    return cast(I, LazyProxy[I](interface))
+def Depends[I](interface: type[I], resolver: Resolver[I] | None = None) -> I:
+    return cast(I, LazyProxy[I](interface, resolver))
