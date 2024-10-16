@@ -24,7 +24,7 @@ class ScopedProvider(Provider):
 
         scoped = self._interface_to_concrete[interface]
         current_scope = self._get_scope()
-        if scoped.current_scope != current_scope:
+        if scoped.current_instance is None or scoped.current_scope != current_scope:
             scoped.current_scope = current_scope
             scoped.current_instance = scoped.type()
         return cast(T, scoped.current_instance)

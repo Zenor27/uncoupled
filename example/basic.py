@@ -1,4 +1,3 @@
-import random
 from typing import Protocol
 from dipy.container import Container, Depends
 
@@ -47,8 +46,7 @@ def run(
 
 
 if __name__ == "__main__":
-    container = Container.create(get_scope=lambda: random.randint(0, 1))
-    # container.add_singleton(Interface, Concrete)
+    container = Container.create()
     container.add_transient(SecondInterface, SecondConcrete)
     container.add_scoped(Interface, Concrete)
     run(41)
