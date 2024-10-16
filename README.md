@@ -1,5 +1,7 @@
 # Uncoupled
 
+[![Tests](https://github.com/Zenor27/uncoupled/actions/workflows/python-tests.yml/badge.svg?branch=main)](https://github.com/Zenor27/uncoupled/actions/workflows/python-tests.yml)
+
 Modern Dependency Injection Container for Python 3.12+
 
 ## Usage
