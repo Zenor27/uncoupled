@@ -2,8 +2,8 @@ from collections.abc import Generator
 from typing import Protocol
 import pytest
 
-from dipy.container import Container
-from dipy.exception import ContainerAlreadyCreatedError, ContainerNotCreatedError
+from uncoupled.container import Container
+from uncoupled.exception import ContainerAlreadyCreatedError, ContainerNotCreatedError
 
 
 @pytest.fixture()

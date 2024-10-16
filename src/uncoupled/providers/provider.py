@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dipy.lifetime import Lifetime
+from uncoupled.lifetime import Lifetime
 from dataclasses import dataclass
 from typing import Protocol
 

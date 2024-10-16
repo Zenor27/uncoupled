@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from logging import Logger
 from typing import Any
 
-from dipy.exception import ResolverError, UnregisteredInterfaceError
-from dipy.providers.provider import Provider, Registered, Resolver, Marker
+from uncoupled.exception import ResolverError, UnregisteredInterfaceError
+from uncoupled.providers.provider import Provider, Registered, Resolver, Marker
 
 
 @dataclass(kw_only=True, slots=True)

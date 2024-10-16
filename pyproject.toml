@@ -1,5 +1,5 @@
 [project]
-name = "dipy"
+name = "uncoupled"
 version = "0.1.0"
 description = "Modern Dependency Injection Container for Python 3.12+"
 readme = "README.md"

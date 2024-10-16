@@ -1,18 +1,18 @@
 from collections.abc import Callable, Hashable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Self, cast
-from dipy.lifetime import Lifetime
+from uncoupled.lifetime import Lifetime
 
-from dipy.exception import (
+from uncoupled.exception import (
     ContainerAlreadyCreatedError,
     ContainerNotCreatedError,
     ResolverError,
     UnregisteredInterfaceError,
 )
-from dipy.providers.provider import Provider, Marker, Resolver
-from dipy.providers.scoped import ScopedProvider
-from dipy.providers.singleton import SingletonProvider
-from dipy.providers.transient import TransientProvider
+from uncoupled.providers.provider import Provider, Marker, Resolver
+from uncoupled.providers.scoped import ScopedProvider
+from uncoupled.providers.singleton import SingletonProvider
+from uncoupled.providers.transient import TransientProvider
 import logging
 
 if TYPE_CHECKING:
@@ -42,7 +42,7 @@ class Container:
         return Container._instance
 
     def __init__(self, get_scope: Callable[[], Hashable], log_level: "_Level") -> None:
-        self._logger = logging.getLogger("dipy")
+        self._logger = logging.getLogger("uncoupled")
         self._logger.setLevel(log_level)
 
         self._lifetime_to_provider: dict[Lifetime, Provider] = {

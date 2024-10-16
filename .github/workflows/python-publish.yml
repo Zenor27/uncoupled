@@ -1,4 +1,4 @@
-name: Upload DIPy to PyPI
+name: Upload uncoupled to PyPI
 
 on:
   release:

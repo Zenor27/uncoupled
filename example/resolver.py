@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from dipy.container import Container, Depends
+from uncoupled.container import Container, Depends
 
 
 class Interface(Protocol):

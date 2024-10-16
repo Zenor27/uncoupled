@@ -1,7 +1,7 @@
 from collections import defaultdict
 from logging import Logger
-from dipy.exception import ResolverError, UnregisteredInterfaceError
-from dipy.providers.provider import Provider, Registered, Resolver, Marker
+from uncoupled.exception import ResolverError, UnregisteredInterfaceError
+from uncoupled.providers.provider import Provider, Registered, Resolver, Marker
 
 
 class TransientProvider(Provider):

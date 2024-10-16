@@ -2,7 +2,7 @@ from collections.abc import Generator
 from typing import Protocol
 import pytest
 
-from dipy.container import Container, Depends
+from uncoupled.container import Container, Depends
 
 
 class Interface(Protocol):

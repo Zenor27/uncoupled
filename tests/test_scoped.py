@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from typing import Literal, Protocol
 
 import pytest
-from dipy.exception import ResolverError, UnregisteredInterfaceError
-from dipy.providers.provider import Provider
-from dipy.providers.scoped import ScopedProvider
+from uncoupled.exception import ResolverError, UnregisteredInterfaceError
+from uncoupled.providers.provider import Provider
+from uncoupled.providers.scoped import ScopedProvider
 
 
 class Interface(Protocol):

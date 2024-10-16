@@ -1,4 +1,4 @@
-# DIPy
+# Uncoupled
 
 Modern Dependency Injection Container for Python 3.12+
 
@@ -7,7 +7,7 @@ Modern Dependency Injection Container for Python 3.12+
 ```python
 from typing import Protocol
 
-from dipy.container import Container, Depends
+from uncoupled.container import Container, Depends
 
 
 # Define the protocol (i.e the interface)
