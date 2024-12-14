@@ -121,14 +121,9 @@ class Container:
 
 def make_proxy_method(name: str):
     def proxy_method(self, *args: Any, **kwargs: Any) -> Any:
-        if concrete := object.__getattribute__(self, "_concrete"):
-            return getattr(concrete, name)(*args, **kwargs)
-
         interface = object.__getattribute__(self, "_interface")
         resolver = object.__getattribute__(self, "_resolver")
         concrete = Container._get_instance().get_concrete_instance(interface, resolver)
-
-        object.__setattr__(self, "_concrete", concrete)
         return getattr(concrete, name)(*args, **kwargs)
 
     return proxy_method
@@ -138,8 +133,6 @@ class LazyProxy[I]:
     def __init__(self, interface: type[I], resolver: Resolver | None = None) -> None:
         self._interface = interface
         self._resolver = resolver
-
-        self._concrete: I | None = None
 
     __call__ = make_proxy_method("__call__")
     __getattribute__ = make_proxy_method("__getattribute__")
