@@ -52,8 +52,13 @@ class ScopedProvider(Provider):
 
     def _get_scoped_instance[T](self, registered: Registered[T]) -> T:
         scoped = self._registered_to_scoped[registered]
-        if scoped.current_instance is None or scoped.current_scope != self._get_scope():
-            scoped.current_scope = self._get_scope()
+        new_scope = self._get_scope()
+        if scoped.current_instance is None or scoped.current_scope != new_scope:
+            self._logger.debug(
+                f"Creating new instance of {registered.concrete.__name__} "
+                f"old scope was {scoped.current_scope}, new scope is {new_scope}"
+            )
+            scoped.current_scope = new_scope
             scoped.current_instance = registered.concrete()
         return scoped.current_instance
 
