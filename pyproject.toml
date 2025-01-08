@@ -1,6 +1,6 @@
 [project]
 name = "uncoupled"
-version = "0.1.1"
+version = "0.1.2"
 description = "Modern Dependency Injection Container for Python 3.12+"
 readme = "README.md"
 requires-python = ">=3.12"

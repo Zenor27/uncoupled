@@ -3,7 +3,7 @@ from typing import Protocol
 from uuid import uuid4
 import pytest
 
-from uncoupled.container import Container, Depends
+from uncoupled.container import Container, Depends, inject
 
 
 class Interface(Protocol):
@@ -27,6 +27,7 @@ def init_container_scoped() -> Generator:
 
 
 def test_instance_recreated() -> None:
+    @inject
     def get_instance(inst: Interface = Depends(Interface)) -> Interface:
         return inst
 

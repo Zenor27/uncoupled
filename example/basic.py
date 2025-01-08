@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from uncoupled.container import Container, Depends
+from uncoupled.container import Container, Depends, inject
 
 
 # Define the protocol (i.e the interface)
@@ -15,6 +15,7 @@ class ServiceImpl(IService):
 
 
 # Inject with `Depends` the required protocol
+@inject
 def my_function(svc: IService = Depends(IService)) -> None:
     print(svc.compute())  # Should return 42 !
 
