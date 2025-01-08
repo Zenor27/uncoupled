@@ -2,7 +2,7 @@ from collections.abc import Generator
 from typing import Protocol
 import pytest
 
-from uncoupled.container import Container, Depends
+from uncoupled.container import Container, Depends, inject
 
 
 class Interface(Protocol):
@@ -35,6 +35,7 @@ def init_container() -> Generator:
 
 
 def test_injected() -> None:
+    @inject
     def foo(interface: Interface = Depends(Interface)) -> int:
         return interface.foo()
 
@@ -42,6 +43,7 @@ def test_injected() -> None:
 
 
 def test_injected_with_resolver() -> None:
+    @inject
     def foo(
         interface: Interface = Depends(
             Interface,
@@ -56,6 +58,7 @@ def test_injected_with_resolver() -> None:
 
 
 def test_injected_with_lifetime() -> None:
+    @inject
     def foo(
         interface: Interface = Depends(
             Interface,

@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from uncoupled.container import Container, Depends
+from uncoupled.container import Container, Depends, inject
 
 
 class Interface(Protocol):
@@ -23,6 +23,7 @@ class SecondImplementation(Interface):
         return self.bar * x
 
 
+@inject
 def run(
     foo_first_impl: Interface = Depends(Interface),
     foo_second_impl: Interface = Depends(

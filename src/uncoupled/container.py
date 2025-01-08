@@ -1,6 +1,8 @@
 from collections.abc import Callable, Hashable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Self, cast
+from inspect import signature
+import inspect
+from typing import TYPE_CHECKING, Any, Self, cast, get_type_hints
 from uncoupled.lifetime import Lifetime
 
 from uncoupled.exception import (
@@ -119,25 +121,64 @@ class Container:
         raise UnregisteredInterfaceError(interface)
 
 
-def make_proxy_method(name: str):
-    def proxy_method(self, *args: Any, **kwargs: Any) -> Any:
-        interface = object.__getattribute__(self, "_interface")
-        resolver = object.__getattribute__(self, "_resolver")
-        concrete = Container._get_instance().get_concrete_instance(interface, resolver)
-        return getattr(concrete, name)(*args, **kwargs)
+def make_not_wrapped_method(name: str):
+    def _make_not_wrapped_method(self, *args: Any, **kwargs: Any) -> Any:
+        if name in "__getattribute__" and ("_interface" in args or "_resolver" in args):
+            return object.__getattribute__(self, *args, **kwargs)
+        raise RuntimeError(
+            "You are trying to call a Depends object, did you forget to use @inject ?"
+        )
 
-    return proxy_method
+    return _make_not_wrapped_method
 
 
-class LazyProxy[I]:
-    def __init__(self, interface: type[I], resolver: Resolver | None = None) -> None:
+class _DependsMarker[I]:
+    def __init__(self, interface: type[I], resolver: Resolver[I] | None = None) -> None:
         self._interface = interface
         self._resolver = resolver
 
-    __call__ = make_proxy_method("__call__")
-    __getattribute__ = make_proxy_method("__getattribute__")
-    __repr__ = make_proxy_method("__repr__")
+
+for name, _ in inspect.getmembers(_DependsMarker):
+    if name in {
+        "__class__",
+        "__new__",
+        "__call__",
+        "__init__",
+        "__dict__",
+        "__class_getitem__",
+        "__parameters__",
+        "__setattr__",
+    }:
+        continue
+    setattr(_DependsMarker, name, make_not_wrapped_method(name))
 
 
 def Depends[I](interface: type[I], resolver: Resolver[I] | None = None) -> I:
-    return cast(I, LazyProxy[I](interface, resolver))
+    return cast(I, _DependsMarker[I](interface, resolver))
+
+
+def Resolve[I](
+    interface: type[I], resolver: Resolver[I] | None = None
+) -> Callable[[], I]:
+    @inject
+    def _resolve(i: I = Depends(interface, resolver)) -> I:
+        return i
+
+    return _resolve
+
+
+def inject[F: Callable](func: F) -> F:
+    def _uncoupled_inject_func(*args: Any, **kwargs: Any) -> Any:
+        bound_args = signature(func).bind_partial(*args, **kwargs)
+        bound_args.apply_defaults()
+
+        for arg_name, arg_value in bound_args.arguments.items():
+            if isinstance(arg_value, _DependsMarker):
+                concrete_instance = Container._get_instance().get_concrete_instance(
+                    arg_value._interface, arg_value._resolver
+                )
+                bound_args.arguments[arg_name] = concrete_instance
+
+        return func(*bound_args.args, **bound_args.kwargs)
+
+    return cast(F, _uncoupled_inject_func)
